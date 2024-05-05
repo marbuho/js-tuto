@@ -236,8 +236,8 @@ Detectar a que script (alfabeto unicode) pertenece un codigo dado. usamos el mé
 function alfabetoScriptFromCode(codigo){
 	for (let script of SCRIPTS){
 		if(script.ranges.some( ([ini, fin]) =>{
-								return code >= ini && code < fin
-								} )){
+				return code >= ini && code < fin
+				} )){
 		
 			return script;
 		}
@@ -265,6 +265,144 @@ function countBy(items, groupName){
 console.log(countBy([1, 2, 3, 4, 5], n => n > 2));
 // → [{name: false, count: 2}, {name: true, count: 3}]
 ```
+utilizando `countBy` se puede escribir una funcion que indique que scripts (afabetos )se utilizan en un texto: de tal manera que sea:
+```js
+console.log(textScripts('fgfgdf的狗说"woof", 俄´{}"')
+// -> [ { name: 'Latin', count: 10 }, { name: 'Han', count: 4 } ]
+```
+se utilizan `countBy` y `characterScript`
+```js
+function textScripts(text) {
+  let scripts = countBy(text, char => {
+    let script = characterScript(char.codePointAt(0));
+    return script ? script.name : "none";
+  }).filter(({name}) => name != "none");
+  return scripts;
+```
 
+se puede agregar unos pasoa extras para hacr uso de `reduce` y `map` , por ejemplo transformar a % la aparicion de cada alfabeto.
 
+```js
 
+function textScripts(text) {
+  let scripts = countBy(text, char => {
+    let script = characterScript(char.codePointAt(0));
+    return script ? script.name : "none";
+  }).filter(({name}) => name != "none");
+//->scripts= [ { name: 'Latin', count: 10 }, { name: 'Han', count: 4 } ]...
+
+//se usa reduce para sumar cada count y obtener total.
+  let total = scripts.reduce((n, {count}) => n + count, 0);
+  if (total == 0) return "No scripts found";
+// se tranforma en varios string con el %, y luego se une con join
+  return scripts.map( ({name, count}) => {
+    return `${Math.round(count * 100 / total)}% ${name}`;
+  }).join(", ");
+}
+
+console.log(textScripts('fgfgdf的狗说"woof", 俄´{}"'));
+// → 61% Han, 22% Latin, 17% Cyrillic
+```
+
+# Ejercicios
+## Flattening
+
+Use the `reduce` method in combination with the `concat` method to “flatten” an array of arrays into a single array that has all the elements of the original arrays.
+```js
+let arrays = [[1, 2, 3], [4, 5], [6]];
+// Your code here.
+// → [1, 2, 3, 4, 5, 6]
+```
+solucion:
+```js
+function flattening(array){
+
+let result = array.reduce( (acum, subarr) => {
+	return acum.concat(subarr);
+	}, []);
+			 
+return result;
+}
+
+```
+usamos `reduce` donde la funcion recibe como función acumuladora una que concatena arrays `concat`, observar que se le pasan 2 parametros, `acum` y `subarr`, los cuales son, respectivamente,  un array vacio (ya que su valor inicial es el que se pasa cmo 3er argumento: `[]`) y un `elemento` del array . NOtar que en este caso el `elemento` tabmien es del tipo array.
+
+## Your own loop
+
+Write a higher-order function `loop` that provides something like a `for` loop statement. It should take a value, a test function, an update function, and a body function. Each iteration, it should first run the test function on the current loop value and stop if that returns false. It should then call the body function, giving it the current value, then finally call the update function to create a new value and start over from the beginning.
+defining the function, you can use a regular loop to do the actual looping.
+[link](https://eloquentjavascript.net/05_higher_order.html#c-Fv1rc97GEM)
+
+```js
+// Your code here.
+
+loop(3, n => n > 0, n => n - 1, console.log);
+// → 3
+// → 2
+// → 1
+```
+solucion:
+```js
+function loop(value, test, update, body){
+	let current = value;
+	while (test(current)){
+		body(current);
+		current = update(current);
+	}
+}
+
+```
+
+## Everything
+
+[](https://eloquentjavascript.net/05_higher_order.html#p-mCva3ZA9gp)Arrays also have an `every` method analogous to the `some` method. This method returns true when the given function returns true for _every_ element in the array. In a way, `some` is a version of the `||` operator that acts on arrays, and `every` is like the `&&` operator.
+
+[](https://eloquentjavascript.net/05_higher_order.html#p-m8iHZxZZwf)Implement `every` as a function that takes an array and a predicate function as parameters. Write two versions, one using a loop and one using the `some` method.
+
+```js
+function every(array, test) {
+  // Your code here.
+}
+
+console.log(every([1, 3, 5], n => n < 10));
+// → true
+console.log(every([2, 4, 16], n => n < 10));
+// → false
+console.log(every([], n => n < 10));
+// → true
+```
+loop version:
+```js
+function every(array, test) {
+	for (let item of array){
+		if (!test(item)) return false;		
+	}
+	return true;
+}
+```
+`some` version:
+leyes de morgan ` (a AND b) => -(-a OR -b) ` . 
+`every = true` -> es que todos los elementos cumplen la condición `test` equivale a decir que no existe  alguno que  no la cumpla.
+
+```js
+function every(array, test) {
+//si es vacio retornnar false:
+if (array.length == 0) {return false};
+// existe alguno que no cumpla?
+let existe = array.some((elemento) => ! test(elemento));
+// si existe:true entonces no se cumple el every:false
+// si no exite:false entonces se cumple el every:true
+return !existe;
+}
+
+```
+versión comprimida:
+
+```js
+function every(array, test) {
+return array.length == 0 ? false : ! array.some(item => ! test(item));
+}
+
+```
+
+```
