@@ -233,6 +233,7 @@ for (let char of roseDragon) {
 Detectar a que script (alfabeto unicode) pertenece un codigo dado. usamos el método de array `some` el cual comprueba si al menos un elemento del array cumple con la condición implementada por la función proporcionada.
 
 ```js
+//characterScript(code)
 function alfabetoScriptFromCode(codigo){
 	for (let script of SCRIPTS){
 		if(script.ranges.some( ([ini, fin]) =>{
@@ -247,6 +248,7 @@ function alfabetoScriptFromCode(codigo){
 ```
 contar cantidad de caracteres, versión abstracta:
 ```js
+//contar cantidad de item por grupo, devuelve array de objetos
 function countBy(items, groupName){
 	let counts = [];
 	for (let item of items){
@@ -402,7 +404,134 @@ versión comprimida:
 function every(array, test) {
 return array.length == 0 ? false : ! array.some(item => ! test(item));
 }
+```
+## Dominant writing direction
 
+[](https://eloquentjavascript.net/05_higher_order.html#p-9kMfnY4I1g)Write a function that computes the dominant writing direction in a string of text. Remember that each script object has a `direction` property that can be `"ltr"` (left to right), `"rtl"` (right to left), or `"ttb"` (top to bottom).
+The dominant direction is the direction of a majority of the characters that have a script associated with them. The `characterScript` and `countBy` functions defined earlier in the chapter are probably useful here.
+
+
+```js
+function dominantDirection(text) {
+	if (text.length == 0) return null;
+	// contar agrupando por nombre del atributo direction 'ltr' 'rtl' 'ttb'
+	let groups = countBy(text, char => { 
+		let alfabeto = characterScript(char.codePointAt(0)); //code to script
+		return alfabeto ? alfabeto.direction : "none";
+	// asignan "none" aquellos que no tengan un scrip asociado
+	}).filter(({name}) => name != "none"); //limpia los none
+
+  //groups →[{name: 'ltr', count: 2}, {name: 'rtl', count: 3}, {name: 'ttb', count: 5}]
+	return  groups.reduce( (a, b) => {
+				let mayor = a.count > b.count ? a : b;
+				return mayor;
+				});
+}
+
+console.log(dominantDirection("Hello!"));
+// → ltr
+console.log(dominantDirection("Hey, مساء الخير"));
+// → rtl
+console.log(dominantDirection(""));
+// → null
 ```
 
+#  The Secret Life of Objects
+
+Concepto= en vez de *types* primitivos ahora se tiene *types* *objects*  como la unidad de organización del programa. 
+*Object class*: es un subprograma que abstrae para su codigo interno y solo se interactua con el atra vez de metodos y propiedades.
+
+## métodos
+```js
+function saludar(dice) {
+  console.log(`La parsona de ${this.pais} saluda diciendo '${dice}'`);
+}
+let argPerson = {pais: "Argentina", saludar};
+let italPerson = {pais: "Italia", saludar};
+
+argPerson.saludar("buenas");
+// → La persona de argentina saluda diciendo "buenas"'
+italPerson.saludar("chiao");
+// → La persona de italia saluda diciendo"chiao"'
+```
+`object.method()` *el binding* `this`  apunta automáticamente al objeto por el cual fue llamado.
+alternativa:
+`saludar.call(argPerson, "hola")`
+## con función anónima
+Una forma de definir un objeto con un metodo y una propiedad:
+
+```js
+//objeto finder
+let finder = {
+  find(array) {
+    return array.some(v => v == this.value);
+  },
+  value: 5
+};
+console.log(finder.find([4, 5]));
+// → true
+```
+OJO si se escribe el arguento de `some` usando la palabra `function` este codigo no funciona.
+## Prototipos:
+Todas las personas comparten el mismo metodo. `saludar`. Como crear un molde del objeto de tal manera que se le pase una pais, y un saludo, y se devuelva un objeto que mantenga la propiedad `pais` y el método `saludar`. Esto se hace con los **prototipos**
+En javascript los obj puenden enlazarse a otros objetos para que magicamente *capturen* todas las propiedades que el objeto enlazado.
+un **objeto plano**  se crea con `{}` y enlaza automaticamente con un objeto llamado **`Object.prototype`.**`
+
+```js
+let nada = {}; 
+console.log(nada.toString); // se llamo a una propiedad
+// → function toString(){…}
+console.log(empty.toString()); // se llamo a un metodo
+// → [object Object]
+```
+el objeto plano nada, capturo/heredo todas las propiedades del objeto `prototype` . cuando un objeto llama a una propiedad que no tiene, la buscara en el objetco `object.prototype`
+
+```js
+console.log(Object.getPrototypeOf({}) == Object.prototype);
+// → true
+console.log(Object.getPrototypeOf(Object.prototype));
+// → null
+```
+En el codigo anterior vermos que **`Objetct.prototype`** no tiene protipo, pero todos los objetos planos, capturan/heredan el prototipo `Object.prototype`
+Así, `Functions` derivan del prottipo `function.prototype` y los `arrays` vienen del prototipo `Array.prototype`:
+
+## creando objetos con prototipo:
+Para crear un objeto con cierto prototipo se usa `Object.create`
+```js
+let protoPerson = {
+  saludar(saludo) {
+    console.log(`La persona de ${this.pais} saluda diciendo '${saludo}'`);
+  }
+};
+let argPerson = Object.create(protoPerson);
+argPerson.pais = "Argentina";
+argPerson.saludar("buenas");
+// → La persona de Argentina saluda diciendo 'buenas'
+```
+ENtonces, el prototipo Person actua como un "contenedor" del para  las propiedades que comparten todoslas Personas
+
+## el metodo COnstructor en JS
+Para crear una instancia de una dada clase, se debe crear/construir un objecto que derive de cierto **prototipo** pero tambien que tenga sus valores especificos en sus **propiedades**
+el constructor  sera la función:
+```js
+function makePerson(pais) {
+  let arg = Object.create(protoPerson);
+  arg.pais = pais;
+  return arg;
+}
+```
+### notación equivalnete `class`
+JS cuenta con una ntoación que sigue el formato tipico de otros lenguajes POO:
+```js
+class Person {
+  constructor(pais) {
+    this.pais = pais;
+  }
+  saludar(saludo) {
+    console.log(`The ${this.pais} rabbit says '${saludo}'`);
+  }
+}
+
+// se la llama de tal:
+let arg = new Person("Argentina");
 ```
